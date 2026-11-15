@@ -319,7 +319,10 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
   font-size: 11.5px; font-weight: 700;
   background: var(--cream); color: var(--ink-soft);
   padding: 4px 9px; border-radius: 999px;
+  cursor: pointer;
 }
+.mini-stat:active { transform: scale(0.96); }
+.mini-stat:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
 
 .member-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
 .piggy { text-align: right; }
@@ -343,6 +346,8 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
 .mission-preview .mission-preview-emoji { font-size: 30px; margin: 4px 0; }
 .mission-preview .mission-preview-text { font-weight: 800; font-size: 16px; margin-bottom: 12px; }
 .mission-preview.done { background: var(--mint-soft); }
+.tap-card { cursor: pointer; }
+.tap-card:active { transform: scale(0.995); }
 
 .stamp-preview .dots { display: flex; gap: 8px; margin: 10px 0 4px; }
 .dot {
@@ -1204,8 +1209,68 @@ var DEFAULT_ROOM = 'our-family';
 
 function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
+/* ---------- the family clock: Port Monmouth, NJ ---------- */
+
+var FAMILY_TZ = 'America/New_York';
+var FAMILY_TZ_LABEL = 'ET';
+
+var _nyPartsFmt = null;
+
+/* New York wall-clock parts for an instant (defaults to now). */
+function nyParts(ts) {
+  var d = (ts === undefined || ts === null) ? new Date() : (typeof ts === 'number' ? new Date(ts) : ts);
+  if (!_nyPartsFmt) {
+    _nyPartsFmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: FAMILY_TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+  }
+  var parts = {};
+  _nyPartsFmt.formatToParts(d).forEach(function (p) {
+    if (p.type !== 'literal') parts[p.type] = p.value;
+  });
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour) % 24, /* some engines report midnight as 24 */
+    minute: Number(parts.minute),
+    second: Number(parts.second)
+  };
+}
+
+/* New York's calendar day as a plain local Date at midnight (for week math). */
+function nyToday(ts) {
+  var p = nyParts(ts);
+  return new Date(p.year, p.month - 1, p.day);
+}
+
+/* The New York calendar day an instant falls on. */
+function nyCalendarDate(ts) { return nyToday(ts); }
+
+/* "5:16 PM" */
+function clockLabel(hour24, minute) {
+  var h = hour24 % 12;
+  if (h === 0) h = 12;
+  return h + ':' + pad2(minute) + ' ' + (hour24 < 12 ? 'AM' : 'PM');
+}
+
+/* New York clock for a timestamp. */
+function nyClock(ts) {
+  var p = nyParts(ts);
+  return clockLabel(p.hour, p.minute);
+}
+
+/* A calendar Date rendered in UTC noon so no time zone can shift the day. */
+function calendarStamp(d) {
+  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0));
+}
+
 function dateKey(d) {
-  d = d || new Date();
+  if (!d) {
+    var p = nyParts();
+    return p.year + '-' + pad2(p.month) + '-' + pad2(p.day);
+  }
   return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
 }
 
@@ -1221,7 +1286,7 @@ function addDays(d, n) {
 }
 
 function weekStartDate(d) {
-  d = d || new Date();
+  d = d || nyToday();
   var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   var off = (x.getDay() + 6) % 7;
   x.setDate(x.getDate() - off);
@@ -1236,15 +1301,19 @@ function weekDates(d) {
 }
 
 function shortDate(d) {
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(d);
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(calendarStamp(d));
 }
 
 function longDate(d) {
-  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(d);
+  return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' }).format(calendarStamp(d));
 }
 
 function timeLabel(ts) {
-  return new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' }).format(new Date(ts));
+  return new Intl.DateTimeFormat('en-US', { timeZone: FAMILY_TZ, hour: 'numeric', minute: '2-digit' }).format(new Date(ts));
+}
+
+function timeLabelET(ts) {
+  return timeLabel(ts) + ' ' + FAMILY_TZ_LABEL;
 }
 
 function uid(prefix) {
@@ -1572,7 +1641,7 @@ function addStamp(date, source, label) {
 }
 
 function stampStreak() {
-  var cursor = new Date();
+  var cursor = nyToday();
   if (!stampFor(dateKey(cursor))) cursor = addDays(cursor, -1);
   var count = 0;
   while (stampFor(dateKey(cursor))) {
@@ -1583,11 +1652,11 @@ function stampStreak() {
 }
 
 function monthStampCount(now) {
-  now = now || new Date();
+  var p = nyParts(now || null);
   var count = 0;
   Object.keys(state.stamps).forEach(function (k) {
     var d = parseKey(k);
-    if (d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()) count++;
+    if (d.getFullYear() === p.year && d.getMonth() === p.month - 1) count++;
   });
   return count;
 }
@@ -2074,12 +2143,13 @@ function moneyBurst(anchor) {
 /* ---------- header / navigation ---------- */
 
 function renderHeader() {
-  var now = new Date();
+  /* the dashboard always shows the family's own clock in New Jersey */
+  var p = nyParts();
   var dateEl = $('#headerDate');
-  if (dateEl) dateEl.textContent = longDate(now);
+  if (dateEl) dateEl.textContent = longDate(nyToday()) + ' \u00B7 ' + clockLabel(p.hour, p.minute) + ' ' + FAMILY_TZ_LABEL;
   var subEl = $('#headerSub');
   if (subEl) {
-    var hour = now.getHours();
+    var hour = p.hour;
     var greeting = hour < 12 ? 'Good morning' : (hour < 18 ? 'Good afternoon' : 'Good evening');
     subEl.textContent = greeting + ' \u00B7 Our Cozy Family Day';
   }
@@ -2323,8 +2393,8 @@ function memberCardHTML(m, date) {
     '<h3 class="member-name">' + esc(m.name) + '</h3>' +
     '<p class="member-sub">' + esc(m.subtitle || '') + '</p>' +
     '<div class="member-stats">' +
-    '<span class="mini-stat"><span>\u2705</span>' + chores.done + '/' + chores.total + ' chores</span>' +
-    '<span class="mini-stat"><span>\uD83D\uDCDA</span>' + (study.total ? (study.done + '/' + study.total + ' study') : '\u2014 study') + '</span>' +
+    '<span class="mini-stat" data-action="go-tab" data-tab="chores" role="button" tabindex="0"><span>\u2705</span>' + chores.done + '/' + chores.total + ' chores</span>' +
+    '<span class="mini-stat" data-action="go-tab" data-tab="study" role="button" tabindex="0"><span>\uD83D\uDCDA</span>' + (study.total ? (study.done + '/' + study.total + ' study') : '\u2014 study') + '</span>' +
     '</div></div>' +
     '<div class="member-right">' + right +
     (highFive ? '<span class="hf-badge">\uD83D\uDE4C High-Five!</span>' : '') +
@@ -2341,7 +2411,7 @@ function renderHome() {
 
   var missionPreview;
   if (mission) {
-    missionPreview = '<section class="card mission-preview' + (mission.done ? ' done' : '') + '">' +
+    missionPreview = '<section class="card mission-preview tap-card' + (mission.done ? ' done' : '') + '" data-action="go-tab" data-tab="missions">' +
       '<header class="card-head"><h2>\uD83C\uDFB2 Today\u2019s Family Mission</h2>' +
       '<span class="pill">' + (mission.done ? 'Done \u2713' : 'Together') + '</span></header>' +
       '<p class="mission-preview-emoji">' + esc(mission.emoji || '\uD83C\uDFB2') + '</p>' +
@@ -2349,14 +2419,14 @@ function renderHome() {
       '<button class="btn soft" data-action="go-tab" data-tab="missions">Open missions \u2192</button>' +
       '</section>';
   } else {
-    missionPreview = '<section class="card mission-preview">' +
+    missionPreview = '<section class="card mission-preview tap-card" data-action="go-tab" data-tab="missions">' +
       '<header class="card-head"><h2>\uD83C\uDFB2 Today\u2019s Family Mission</h2></header>' +
       '<p class="mission-preview-text">No mission picked yet today.</p>' +
       '<button class="btn soft" data-action="go-tab" data-tab="missions">Pick a mission \u2192</button>' +
       '</section>';
   }
 
-  var days = weekDates(new Date());
+  var days = weekDates(nyToday());
   var dots = '';
   days.forEach(function (d) {
     var key = dateKey(d);
@@ -2365,7 +2435,7 @@ function renderHome() {
       (stamp ? '\u2B50' : '') + '</span>';
   });
 
-  var stampPreview = '<section class="card stamp-preview">' +
+  var stampPreview = '<section class="card stamp-preview tap-card" data-action="go-tab" data-tab="missions">' +
     '<header class="card-head"><h2>\uD83C\uDF1F Weekly Stamps</h2>' +
     '<span class="pill warm">\uD83D\uDD25 ' + streak + '-day streak</span></header>' +
     '<div class="dots">' + dots + '</div>' +
@@ -2434,7 +2504,7 @@ function renderChores() {
   var panel = $('#tab-chores');
   if (!panel) return;
   var today = dateKey();
-  var isSunday = new Date().getDay() === 0;
+  var isSunday = nyToday().getDay() === 0;
 
   var cards = state.members.map(function (m) {
     var list = choresFor(m.id);
@@ -2464,21 +2534,21 @@ function renderChores() {
       '</section>';
   }).join('');
 
-  var weekStartD = weekStartDate(new Date());
+  var weekStartD = weekStartDate(nyToday());
   var weekLabel = 'Week of ' + shortDate(weekStartD) + ' \u2013 ' + shortDate(addDays(weekStartD, 6));
   var weekKey = dateKey(weekStartD);
 
   var allowances = kidMembers().map(function (m) {
     var amount = allowanceOf(m.id);
     var entry = allowanceEntry(m.id, weekKey);
-    var dotsDone = weeklyChoreDots(m.id, new Date()).filter(function (x) { return x.done; }).length;
+    var dotsDone = weeklyChoreDots(m.id, nyToday()).filter(function (x) { return x.done; }).length;
     return '<div class="allow-kid" data-allowance-kid="' + esc(m.id) + '">' +
       '<div class="allow-head">' +
       '<img class="avatar sm" src="' + esc(avatarSrc(m)) + '" alt="">' +
       '<div><h3>' + esc(m.name) + '</h3><p class="muted">' + money(amount) + ' / week \u00B7 ' + dotsDone + '/7 days</p></div>' +
       '<span class="piggy-pill">\uD83D\uDC37 ' + money(balanceOf(m.id)) + '</span>' +
       '</div>' +
-      weekDotsHTML(m.id, new Date()) +
+      weekDotsHTML(m.id, nyToday()) +
       (entry
         ? '<div class="allow-actions"><button class="btn good" disabled>Approved \u2713 +' + money(entry.amount || amount) + '</button>' +
         '<button class="link-btn" data-action="undo-allowance" data-member="' + esc(m.id) + '">Undo</button></div>'
@@ -2636,7 +2706,7 @@ function submitPin() {
 
 function approveAllowance(memberId) {
   var amount = allowanceOf(memberId);
-  var weekKey = allowanceWeekKey(new Date());
+  var weekKey = allowanceWeekKey(nyToday());
   if (allowanceEntry(memberId, weekKey)) { toast('Already approved for this week.'); return; }
   if (!state.ledger[memberId]) state.ledger[memberId] = [];
 
@@ -2646,7 +2716,7 @@ function approveAllowance(memberId) {
     amount: amount,
     ts: Date.now(),
     weekKey: weekKey,
-    note: 'Weekly chore allowance (' + shortDate(weekStartDate(new Date())) + ' \u2013 ' + shortDate(addDays(weekStartDate(new Date()), 6)) + ')'
+    note: 'Weekly chore allowance (' + shortDate(weekStartDate(nyToday())) + ' \u2013 ' + shortDate(addDays(weekStartDate(nyToday()), 6)) + ')'
   });
   if (!state.allowances[weekKey]) state.allowances[weekKey] = {};
   state.allowances[weekKey][memberId] = { amount: amount, at: Date.now() };
@@ -2667,7 +2737,7 @@ function approveAllowance(memberId) {
 }
 
 function undoAllowance(memberId) {
-  var weekKey = allowanceWeekKey(new Date());
+  var weekKey = allowanceWeekKey(nyToday());
   askConfirm('Undo this allowance?', 'The ' + money(allowanceOf(memberId)) + ' allowance entry will be removed from ' + (memberById(memberId) || {}).name + '\u2019s ledger.', 'Undo', function () {
     state.ledger[memberId] = ledgerFor(memberId).filter(function (t) {
       return !(t.type === 'allowance' && t.weekKey === weekKey);
@@ -2689,7 +2759,7 @@ function requestAllowanceApproval(memberId) {
 
 function stampDotsHTML() {
   var today = dateKey();
-  var days = weekDates(new Date());
+  var days = weekDates(nyToday());
   var html = '<div class="stamp-dots">';
   days.forEach(function (d, i) {
     var key = dateKey(d);
@@ -2850,8 +2920,8 @@ function deleteMission(missionId) {
 /* ---------- stamp calendar ---------- */
 
 function openStampCalendar() {
-  var now = new Date();
-  calCursor = { y: now.getFullYear(), m: now.getMonth() };
+  var nowNY = nyParts();
+  calCursor = { y: nowNY.year, m: nowNY.month - 1 };
   openModal(
     '<div class="modal-head"><h2>\uD83D\uDCC5 Stamp Calendar</h2>' +
     '<button class="icon-btn" data-action="close-modal" aria-label="Close">\u2715</button></div>' +
@@ -3277,10 +3347,10 @@ function checkTabletAlarm() {
   }
 
   if (t.mode === 'clock') {
-    var now = new Date();
-    var hh = pad2(now.getHours());
-    var mm = pad2(now.getMinutes());
-    var key = dateKey(now) + ' ' + hh + ':' + mm;
+    var nowNY = nyParts();
+    var hh = pad2(nowNY.hour);
+    var mm = pad2(nowNY.minute);
+    var key = dateKey() + ' ' + hh + ':' + mm;
     if ((hh + ':' + mm) === String(t.clock) && lastAlarmKey !== key) {
       lastAlarmKey = key;
       triggerTabletAlarm('clock');
@@ -3354,7 +3424,7 @@ function renderAllowance() {
   var allowance = earnedOf(m.id, 'allowance');
   var deposits = earnedOf(m.id, 'deposit');
   var spent = earnedOf(m.id, 'spend');
-  var weekKey = allowanceWeekKey(new Date());
+  var weekKey = allowanceWeekKey(nyToday());
   var approved = allowanceEntry(m.id, weekKey);
 
   var switcher = kids.map(function (k) {
@@ -3371,7 +3441,7 @@ function renderAllowance() {
     return '<li class="ledger-row ' + (isSpend ? 'spend' : 'gain') + '">' +
       '<span class="ledger-ico">' + icon + '</span>' +
       '<div class="ledger-main"><strong>' + esc(label) + '</strong>' +
-      '<small>' + esc(shortDate(new Date(t.ts))) + ' \u00B7 ' + esc(timeLabel(t.ts)) + '</small></div>' +
+      '<small>' + esc(shortDate(nyCalendarDate(t.ts))) + ' \u00B7 ' + esc(timeLabel(t.ts)) + '</small></div>' +
       '<span class="ledger-amt">' + (isSpend ? '-' : '+') + money(Math.abs(Number(t.amount) || 0)) + '</span>' +
       (isAllowance
         ? '<span class="ledger-lock" title="Weekly allowance">\uD83D\uDD12</span>'
@@ -4229,6 +4299,14 @@ function runAction(action, el) {
   }
 }
 
+function onDocumentKeydownActivate(ev) {
+  if (ev.key !== 'Enter' && ev.key !== ' ') return;
+  var target = ev.target;
+  if (!target || !target.classList || !target.classList.contains('mini-stat')) return;
+  ev.preventDefault();
+  switchTab(target.getAttribute('data-tab'));
+}
+
 function onDocumentClick(ev) {
   var target = ev.target;
   if (!target || !target.closest) return;
@@ -4346,8 +4424,19 @@ function boot() {
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('change', onDocumentChange);
   document.addEventListener('keydown', onDocumentKeydown);
+  document.addEventListener('keydown', onDocumentKeydownActivate);
   document.addEventListener('fullscreenchange', renderHeader);
   document.addEventListener('webkitfullscreenchange', renderHeader);
+
+  /* bottom navigation: every tab button switches its panel */
+  $$('.nav-btn').forEach(function (btn) {
+    var tab = btn.getAttribute('data-tab');
+    btn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      switchTab(tab);
+    });
+  });
 
   var settingsBtn = $('#settingsBtn');
   if (settingsBtn) settingsBtn.addEventListener('click', function (ev) { ev.preventDefault(); openSettings(); });
@@ -4356,6 +4445,7 @@ function boot() {
 
   setInterval(tick, 1000);
   setInterval(dayWatch, 60000);
+  setInterval(function () { if (!document.hidden) renderHeader(); }, 20000);
 
   /* cloud auth gate: only when Firebase has been configured for this family */
   var cfg = parseFirebaseConfig(cloud && cloud.configText);
