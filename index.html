@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBF3E2">
+<title>Our Family Dashboard</title>
+<link rel="icon" href="./assets/arya.png">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<!-- Sign-in gate (shows when the family cloud is connected) -->
+<div id="authGate" class="auth-gate" hidden></div>
+
+<header class="topbar">
+  <div class="brand">
+    <img id="brandMascot" class="brand-mascot" src="./assets/mom.png" alt="">
+    <div class="brand-copy">
+      <h1>Our Family <span>Dashboard</span></h1>
+      <p class="brand-date" id="headerDate">&nbsp;</p>
+      <p class="brand-sub" id="headerSub">Our Cozy Family Day</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <div class="pill-btn-group">
+      <button id="settingsBtn" class="icon-btn gear" aria-label="Settings">⚙️</button>
+      <span class="sync-badge" id="syncBadge" data-status="local">⚪ This device</span>
+    </div>
+    <button id="fullscreenBtn" class="round-btn" aria-label="Fullscreen">⛶</button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ============ HOME ============ -->
+  <section class="tab-panel" data-tab="home" id="tab-home"></section>
+
+  <!-- ============ CHORES ============ -->
+  <section class="tab-panel" data-tab="chores" id="tab-chores" hidden></section>
+
+  <!-- ============ MISSIONS ============ -->
+  <section class="tab-panel" data-tab="missions" id="tab-missions" hidden></section>
+
+  <!-- ============ STUDY ============ -->
+  <section class="tab-panel" data-tab="study" id="tab-study" hidden></section>
+
+  <!-- ============ ALLOWANCE ============ -->
+  <section class="tab-panel" data-tab="allowance" id="tab-allowance" hidden></section>
+
+  <!-- ============ CHAT ============ -->
+  <section class="tab-panel" data-tab="chat" id="tab-chat" hidden></section>
+
+</main>
+
+<nav class="bottom-nav" aria-label="Main">
+  <button class="nav-btn active" data-tab="home"><span class="nav-ico">🏠</span><span>Home</span></button>
+  <button class="nav-btn" data-tab="chores"><span class="nav-ico">✅</span><span>Chores</span><span class="nav-badge" hidden></span></button>
+  <button class="nav-btn" data-tab="missions"><span class="nav-ico">🎲</span><span>Missions</span></button>
+  <button class="nav-btn" data-tab="study"><span class="nav-ico">📚</span><span>Study</span></button>
+  <button class="nav-btn" data-tab="allowance"><span class="nav-ico">🐷</span><span>Allowance</span></button>
+  <button class="nav-btn" data-tab="chat"><span class="nav-ico">💬</span><span>Chat</span></button>
+</nav>
+
+<!-- overlays -->
+<div id="toastWrap" class="toast-wrap"></div>
+<div id="modalBackdrop" class="modal-backdrop" hidden>
+  <div id="modalCard" class="modal-card" role="dialog" aria-modal="true"></div>
+</div>
+<div id="celebration" class="celebration" hidden></div>
+<div id="tabletLock" class="tablet-lock" hidden></div>
+
+<!-- Firebase JS SDK v10 (compat builds: App + Auth + Realtime Database) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<!-- Optional override of the built-in family cloud config:
+<script>window.FIREBASE_CONFIG = { apiKey: "…", databaseURL: "https://…firebaseio.com" };</script>
+<script>window.FIREBASE_ROOM = "our-family";</script>
+-->
+
+<script src="./app.js"></script>
+</body>
+</html>
