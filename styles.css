@@ -5,6 +5,9 @@
    Warm pastel cream / mint / pink / blue, mobile-first, Chiikawa-cozy
    ===================================================================== */
 
+/* The hidden attribute must win over layout display rules (.tab-panel, .modal-backdrop, .nav-badge). */
+[hidden] { display: none !important; }
+
 :root {
   --cream: #FBF3E2;
   --cream-soft: #FFFBF0;
