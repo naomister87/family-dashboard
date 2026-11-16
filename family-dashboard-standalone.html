@@ -219,24 +219,32 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
   position: fixed;
   left: 0; right: 0; bottom: 0;
   display: flex;
-  gap: 2px;
+  gap: 1px;
   background: rgba(255, 253, 246, 0.97);
   backdrop-filter: blur(10px);
   box-shadow: 0 -6px 20px rgba(120, 96, 70, 0.12);
-  padding: 8px 6px calc(10px + env(safe-area-inset-bottom));
+  padding: 8px 4px calc(10px + env(safe-area-inset-bottom));
   z-index: 40;
 }
 
 .nav-btn {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   border: none; background: none;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  font-size: 11px; font-weight: 700; color: var(--ink-soft);
-  padding: 6px 2px;
+  font-size: clamp(9px, 2.4vw, 11px); font-weight: 700; color: var(--ink-soft);
+  padding: 6px 1px;
   border-radius: 14px;
   position: relative;
 }
-.nav-ico { font-size: 20px; line-height: 1.2; }
+/* seven tabs must never wrap or clip their labels */
+.nav-btn > span:not(.nav-ico):not(.nav-badge) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-ico { font-size: clamp(17px, 5vw, 20px); line-height: 1.2; }
 .nav-btn.active { color: var(--ink); background: var(--peach-soft); }
 .nav-btn.active .nav-ico { transform: translateY(-2px) scale(1.08); }
 
@@ -1077,6 +1085,179 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
 .toast.show { opacity: 1; transform: translateY(0); }
 .toast-warn { background: rgba(154, 84, 52, 0.96); }
 
+/* ---------------- family calendar ---------------- */
+
+.cal-toolbar .card-head { margin-bottom: 10px; }
+.cal-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-views { flex: 1; min-width: 0; }
+.cal-views .seg { flex: 1; text-align: center; padding: 8px 10px; font-size: 13px; }
+
+.cal-filters { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 0 2px; }
+.cal-chip {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 2px solid transparent;
+  background: #F7F0E1; color: var(--ink);
+  border-radius: 999px;
+  font-size: 12px; font-weight: 800;
+  padding: 6px 11px;
+  transition: transform 0.12s ease;
+}
+.cal-chip:active { transform: scale(0.95); }
+.cal-chip.active { background: #fff; border-color: var(--peach); box-shadow: var(--shadow-soft); }
+.cal-chip-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.cal-chip-ico { font-size: 13px; line-height: 1; }
+
+.cal-nav { display: flex; align-items: center; gap: 6px; margin: 4px 0 10px; }
+.cal-nav-title { flex: 1; min-width: 0; text-align: center; font-size: 16.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-nav-btn {
+  flex: none;
+  border: none; background: #F7F0E1;
+  border-radius: 999px;
+  font-size: 16px; font-weight: 800; line-height: 1;
+  padding: 8px 12px;
+}
+.cal-nav-btn.today { font-size: 12.5px; background: var(--blue-soft); color: #4A6C8C; }
+
+.cal-weekdays { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-bottom: 4px; }
+.cal-weekdays span { text-align: center; font-size: 10px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.3px; }
+
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.cal-day {
+  position: relative;
+  min-width: 0;
+  min-height: 58px;
+  background: #FFFBF0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  padding: 3px 3px 4px;
+  display: flex; flex-direction: column; gap: 2px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.cal-day.other-month { opacity: 0.45; }
+.cal-day.today { background: #FFF0DF; }
+.cal-day.selected { background: #fff; border-color: #E3B58A; box-shadow: var(--shadow-soft); }
+.cal-daynum { font-size: 11px; font-weight: 800; color: var(--ink-soft); line-height: 1.2; text-align: center; }
+.cal-day.today .cal-daynum { color: #D9743F; }
+.cal-day.selected .cal-daynum { color: var(--ink); }
+
+.cal-pills { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cal-pill {
+  display: flex; align-items: center; gap: 3px;
+  min-width: 0;
+  background: var(--ev-bg); color: var(--ev-ink);
+  border-radius: 5px;
+  padding: 0;
+  height: 5px;
+}
+.cal-pill-dot, .cal-pill-text { display: none; }
+.cal-pill-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--ev-dot); flex: none; }
+.cal-pill-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-more { font-size: 8.5px; font-weight: 800; color: #B0763F; text-align: center; }
+.cal-hint { font-size: 11.5px; color: var(--ink-soft); margin-top: 10px; text-align: center; }
+
+.cal-day-card { margin-top: 12px; }
+.cal-event-stack { display: flex; flex-direction: column; gap: 8px; }
+
+.cal-event {
+  display: flex; align-items: flex-start; gap: 9px;
+  background: var(--ev-bg);
+  border-radius: 16px;
+  padding: 9px 10px;
+  box-shadow: var(--shadow-soft);
+}
+.cal-event-when {
+  flex: none; width: 58px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: var(--ev-ink); text-align: center;
+}
+.cal-event-emoji { font-size: 18px; line-height: 1.1; }
+.cal-event-when strong { font-size: 11.5px; }
+.cal-event-when small { font-size: 10px; opacity: 0.7; }
+.cal-event-main { flex: 1; min-width: 0; color: var(--ev-ink); }
+.cal-event-main h3 { font-size: 14.5px; color: var(--ink); overflow-wrap: anywhere; }
+.cal-event-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; font-size: 11.5px; font-weight: 700; margin-top: 2px; }
+.cal-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ev-dot); display: inline-block; flex: none; }
+.cal-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+.cal-badge { font-size: 10.5px; font-weight: 800; background: rgba(255, 255, 255, 0.72); border-radius: 999px; padding: 2px 8px; }
+.cal-notes { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; }
+.cal-event-actions { flex: none; display: flex; gap: 1px; }
+.cal-event-actions .icon-btn { font-size: 14px; padding: 3px; }
+
+.cal-empty { text-align: center; color: var(--ink-soft); font-size: 13px; padding: 14px 8px; }
+.cal-empty span { display: block; font-size: 26px; margin-bottom: 4px; }
+.cal-empty .btn { margin-top: 10px; }
+
+.cal-week-days { display: flex; flex-direction: column; gap: 8px; }
+.cal-week-day { background: #FFFBF0; border-radius: 14px; padding: 8px 9px; }
+.cal-week-day.today { background: #FFF5E9; box-shadow: inset 0 0 0 2px var(--peach); }
+.cal-week-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.cal-week-dow { font-size: 11px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.4px; text-transform: uppercase; }
+.cal-week-date { font-size: 15px; font-weight: 800; }
+.cal-week-add {
+  margin-left: auto;
+  flex: none;
+  width: 26px; height: 26px;
+  border: none; border-radius: 999px;
+  background: #fff; color: #B0763F;
+  font-size: 15px; font-weight: 900; line-height: 1;
+  box-shadow: var(--shadow-soft);
+}
+.cal-week-ev {
+  display: block; width: 100%; text-align: left;
+  border: none; border-radius: 10px;
+  background: var(--ev-bg); color: var(--ev-ink);
+  padding: 5px 8px; margin-top: 4px;
+  border-left: 4px solid var(--ev-dot);
+}
+.cal-week-ev-time { display: block; font-size: 10px; font-weight: 800; opacity: 0.8; }
+.cal-week-ev-title { display: block; font-size: 12.5px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-week-none { font-size: 11.5px; color: var(--ink-soft); padding: 2px 0; }
+
+.cal-agenda-group { margin-top: 14px; }
+.cal-agenda-group:first-of-type { margin-top: 4px; }
+.cal-agenda-day { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.cal-agenda-date { font-size: 13.5px; font-weight: 800; }
+.cal-agenda-count { font-size: 11px; font-weight: 800; background: var(--cream); color: var(--ink-soft); border-radius: 999px; padding: 1px 8px; }
+
+.cal-time-row { display: flex; gap: 8px; }
+.cal-time-row .field { flex: 1; min-width: 0; }
+.cal-modal-members { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#calNotes { font-family: inherit; font-size: 14px; }
+
+/* home preview: upcoming schedule */
+.home-schedule .card-head { margin-bottom: 4px; }
+.home-schedule .btn { width: 100%; margin-top: 10px; }
+.home-ev-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.home-ev { display: flex; align-items: center; gap: 7px; padding: 8px 2px; border-bottom: 2px dashed #EFE4CC; font-size: 13px; }
+.home-ev:last-child { border-bottom: none; }
+.home-ev-day { flex: none; width: 72px; font-size: 10px; font-weight: 800; color: var(--ink-soft); letter-spacing: 0.3px; text-transform: uppercase; }
+.home-ev-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--ev-dot); }
+.home-ev-ico { flex: none; font-size: 15px; }
+.home-ev-title { flex: 1; min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-ev-time { flex: none; font-size: 11.5px; font-weight: 800; color: var(--ink-soft); }
+.home-ev-empty { text-align: center; padding: 12px 8px 4px; color: var(--ink-soft); font-size: 13px; }
+.home-ev-empty-ico { display: block; font-size: 26px; margin-bottom: 4px; }
+
+/* wider screens: readable pills and a Sunday-column-free week row */
+@media (min-width: 520px) {
+  .cal-pill { height: auto; padding: 1px 4px; font-size: 9px; font-weight: 800; line-height: 1.4; }
+  .cal-pill-dot, .cal-pill-text { display: block; }
+  .cal-day { min-height: 74px; }
+  .cal-daynum { font-size: 11.5px; }
+}
+
+@media (min-width: 640px) {
+  .cal-day { min-height: 92px; padding: 4px 5px 5px; }
+  .cal-pill { font-size: 10px; }
+  .cal-week-day { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px; }
+  .cal-week-head { flex: 1 1 100%; margin-bottom: 0; }
+  .cal-week-ev { flex: 1 1 200px; margin-top: 0; }
+  .cal-week-none { flex: 1 1 100%; }
+  .cal-week-ev-title { white-space: normal; }
+}
+
 /* ---------------- larger screens ---------------- */
 
 @media (min-width: 640px) {
@@ -1139,6 +1320,9 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
   <!-- ============ STUDY ============ -->
   <section class="tab-panel" data-tab="study" id="tab-study" hidden></section>
 
+  <!-- ============ CALENDAR ============ -->
+  <section class="tab-panel" data-tab="calendar" id="tab-calendar" hidden></section>
+
   <!-- ============ ALLOWANCE ============ -->
   <section class="tab-panel" data-tab="allowance" id="tab-allowance" hidden></section>
 
@@ -1152,6 +1336,7 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
   <button class="nav-btn" data-tab="chores"><span class="nav-ico">✅</span><span>Chores</span><span class="nav-badge" hidden></span></button>
   <button class="nav-btn" data-tab="missions"><span class="nav-ico">🎲</span><span>Missions</span></button>
   <button class="nav-btn" data-tab="study"><span class="nav-ico">📚</span><span>Study</span></button>
+  <button class="nav-btn" data-tab="calendar"><span class="nav-ico">📅</span><span>Calendar</span></button>
   <button class="nav-btn" data-tab="allowance"><span class="nav-ico">🐷</span><span>Allowance</span></button>
   <button class="nav-btn" data-tab="chat"><span class="nav-ico">💬</span><span>Chat</span></button>
 </nav>
@@ -1478,6 +1663,7 @@ function defaultState() {
         { id: 'seed-2', member: 'arya', text: 'Hi 엄마!! \uD83D\uDE4C', type: 'text', ts: Date.now() - 3000000, heart: false }
       ]
     },
+    calendar: { events: [] },
     tablet: { enabled: false, mode: 'clock', clock: '20:30', minutes: 30 }
   };
 }
@@ -1532,6 +1718,14 @@ function normalizeState(raw) {
 
   out.chat = Object.assign({}, base.chat, raw.chat || {});
   if (!Array.isArray(out.chat.messages)) out.chat.messages = [];
+
+  /* family calendar: a real list of events, never seeded with samples */
+  var rawCal = (raw.calendar && typeof raw.calendar === 'object') ? raw.calendar : {};
+  out.calendar = {
+    events: Array.isArray(rawCal.events)
+      ? rawCal.events.map(normalizeCalendarEvent).filter(function (ev) { return !!ev; })
+      : []
+  };
 
   out.tablet = Object.assign({}, base.tablet, raw.tablet || {});
 
@@ -1705,6 +1899,160 @@ function shuffleMission() {
     date: dateKey(), id: pick.id, text: pick.text, emoji: pick.emoji, done: false
   };
   return state.missions.current;
+}
+
+/* ---------- family calendar ---------- */
+
+var CAL_MEMBER_LOOK = {
+  all:   { label: 'Family', emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66', bg: '#FCE5CD', dot: '#E07A5F', ink: '#8C4A2F' },
+  arya:  { label: 'Arya',   emoji: '\uD83D\uDC06', bg: '#FFE3C7', dot: '#E2A05A', ink: '#8A5A17' },
+  delia: { label: 'Delia',  emoji: '\uD83D\uDC31', bg: '#DCEBFB', dot: '#6BA6DD', ink: '#2F5E8A' },
+  dada:  { label: 'Dada',   emoji: '\uD83D\uDC36', bg: '#D6F3D8', dot: '#4CAF50', ink: '#1E6B2B' },
+  mom:   { label: '\uC5C4\uB9C8',   emoji: '\uD83D\uDC30', bg: '#FBDDE5', dot: '#DE8AA6', ink: '#8E4460' }
+};
+
+var CAL_REPEATS = ['none', 'daily', 'weekly', 'monthly'];
+var CAL_REPEAT_LABELS = { none: 'One time', daily: 'Every day', weekly: 'Every week', monthly: 'Every month' };
+var CAL_EMOJIS = ['\uD83D\uDCC5', '\uD83C\uDFEB', '\u26BD', '\uD83C\uDFB5', '\uD83D\uDCDA', '\uD83E\uDE7A', '\uD83C\uDF89', '\uD83D\uDE97', '\uD83C\uDF7D\uFE0F'];
+
+function calendarEvents() {
+  if (!state || !state.calendar || !Array.isArray(state.calendar.events)) return [];
+  return state.calendar.events;
+}
+
+function calMembers(ev) {
+  var list = (ev && Array.isArray(ev.members)) ? ev.members.filter(function (id) { return id === 'all' || !!CAL_MEMBER_LOOK[id]; }) : [];
+  if (list.indexOf('all') !== -1) return ['all'];
+  var seen = [];
+  list.forEach(function (id) { if (seen.indexOf(id) === -1) seen.push(id); });
+  return seen.length ? seen : ['all'];
+}
+
+function calColorKey(ev) {
+  var members = calMembers(ev);
+  if (members.indexOf('all') !== -1) return 'all';
+  return CAL_MEMBER_LOOK[members[0]] ? members[0] : 'all';
+}
+
+function calLook(ev) { return CAL_MEMBER_LOOK[calColorKey(ev)] || CAL_MEMBER_LOOK.all; }
+
+function calMatchesMember(ev, filter) {
+  if (!filter || filter === 'all') return true;
+  var members = calMembers(ev);
+  return members.indexOf('all') !== -1 || members.indexOf(filter) !== -1;
+}
+
+/* Does this event fall on that New York calendar day, honouring its repeat? */
+function calEventOnDate(ev, key) {
+  if (!ev || !ev.date || !key) return false;
+  if (ev.date === key) return true;
+  var start = parseKey(ev.date);
+  var day = parseKey(key);
+  if (day.getTime() < start.getTime()) return false;
+  var repeat = ev.repeat || 'none';
+  if (repeat === 'daily') return true;
+  if (repeat === 'weekly') return day.getDay() === start.getDay();
+  if (repeat === 'monthly') return day.getDate() === start.getDate();
+  return false;
+}
+
+/* Every event on a day, all-day first then by start time. */
+function eventsForDate(key, memberFilter) {
+  var out = calendarEvents().filter(function (ev) {
+    return calEventOnDate(ev, key) && calMatchesMember(ev, memberFilter);
+  });
+  out.sort(function (a, b) {
+    if (!!a.allDay !== !!b.allDay) return a.allDay ? -1 : 1;
+    return String(a.startTime || '').localeCompare(String(b.startTime || ''));
+  });
+  return out;
+}
+
+/* Days inside a range that have at least one event. */
+function calDaysWithEvents(startDate, days, memberFilter) {
+  var out = [];
+  for (var i = 0; i < days; i++) {
+    var d = addDays(startDate, i);
+    var key = dateKey(d);
+    var list = eventsForDate(key, memberFilter);
+    if (list.length) out.push({ key: key, date: d, events: list });
+  }
+  return out;
+}
+
+/* "4:00 PM" or "4:00 PM \u2013 5:30 PM" or "All day" */
+function calTimeText(ev) {
+  if (!ev) return '';
+  if (ev.allDay || !ev.startTime) return 'All day';
+  var txt = calClock(ev.startTime);
+  if (ev.endTime) txt += ' \u2013 ' + calClock(ev.endTime);
+  return txt;
+}
+
+function calClock(hhmm) {
+  var p = String(hhmm || '').split(':');
+  var h = Number(p[0]);
+  var m = Number(p[1] || 0);
+  if (isNaN(h)) return '';
+  return clockLabel(h, m);
+}
+
+function normalizeCalendarEvent(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  var repeat = String(raw.repeat || 'none');
+  if (CAL_REPEATS.indexOf(repeat) === -1) repeat = 'none';
+  var members = calMembers(raw);
+  var date = String(raw.date || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  var toTime = function (v) {
+    var s = String(v || '');
+    if (!/^\d{1,2}:\d{2}$/.test(s)) return '';
+    var p = s.split(':');
+    return pad2(Number(p[0]) % 24) + ':' + p[1];
+  };
+  return {
+    id: String(raw.id || uid('ev')),
+    title: String(raw.title || 'Family event').slice(0, 120),
+    date: date,
+    allDay: !!raw.allDay,
+    startTime: toTime(raw.startTime),
+    endTime: toTime(raw.endTime),
+    members: members,
+    repeat: repeat,
+    emoji: String(raw.emoji || '\uD83D\uDCC5'),
+    location: String(raw.location || '').slice(0, 160),
+    notes: String(raw.notes || '').slice(0, 500),
+    createdAt: Number(raw.createdAt) || Date.now()
+  };
+}
+
+function addCalendarEvent(data) {
+  if (!state.calendar || !Array.isArray(state.calendar.events)) state.calendar = { events: [] };
+  var ev = normalizeCalendarEvent(Object.assign({}, data || {}, { id: (data && data.id) || uid('ev'), createdAt: Date.now() }));
+  if (!ev) return null;
+  state.calendar.events.push(ev);
+  return ev;
+}
+
+function updateCalendarEvent(id, data) {
+  var list = calendarEvents();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id !== id) continue;
+    var merged = Object.assign({}, list[i], data || {}, { id: id, createdAt: list[i].createdAt });
+    var ev = normalizeCalendarEvent(merged);
+    if (!ev) return null;
+    list[i] = ev;
+    return ev;
+  }
+  return null;
+}
+
+function deleteCalendarEvent(id) {
+  var list = calendarEvents();
+  var kept = list.filter(function (ev) { return ev.id !== id; });
+  if (kept.length === list.length) return false;
+  state.calendar.events = kept;
+  return true;
 }
 
 /* ---------- device-local preferences ---------- */
@@ -1950,6 +2298,13 @@ var allowanceMember = 'arya';
 var calCursor = null;
 var pendingPinAction = null;
 var currentTab = 'home';
+
+/* family calendar view state (month cursor, week cursor, selected day, filter) */
+var calendarView = 'month';
+var calendarMonth = null;
+var calendarWeek = null;
+var calendarDay = null;
+var calendarFilter = 'all';
 
 /* ---------- tiny DOM helpers ---------- */
 
@@ -2204,6 +2559,7 @@ function renderActive() {
   else if (currentTab === 'chores') renderChores();
   else if (currentTab === 'missions') renderMissions();
   else if (currentTab === 'study') renderStudy();
+  else if (currentTab === 'calendar') renderCalendar();
   else if (currentTab === 'allowance') renderAllowance();
   else if (currentTab === 'chat') renderChat();
 }
@@ -2453,9 +2809,54 @@ function renderHome() {
     '<div class="family-grid">' +
     state.members.map(function (m) { return memberCardHTML(m, today); }).join('') +
     '</div></section>' +
+    homeScheduleHTML() +
     '<div class="quick-grid">' + missionPreview + stampPreview + '</div>';
 
   if (weather.status === 'idle') fetchWeather(false);
+}
+
+/* ---------- Home: upcoming schedule preview ---------- */
+
+function homeScheduleHTML() {
+  var today = nyToday();
+  var rows = '';
+  var shown = 0;
+  var groups = calDaysWithEvents(today, 4, calendarFilter);
+
+  groups.forEach(function (g) {
+    if (shown >= 5) return;
+    var label = g.key === dateKey(today) ? 'Today'
+      : (g.key === dateKey(addDays(today, 1)) ? 'Tomorrow' : shortDate(g.date));
+    g.events.slice(0, 5 - shown).forEach(function (ev) {
+      if (shown >= 5) return;
+      shown++;
+      var look = calLook(ev);
+      rows += '<li class="home-ev" style="--ev-dot:' + look.dot + '">' +
+        '<span class="home-ev-day">' + esc(label) + '</span>' +
+        '<span class="home-ev-dot"></span>' +
+        '<span class="home-ev-ico">' + esc(ev.emoji || '\uD83D\uDCC5') + '</span>' +
+        '<span class="home-ev-title">' + esc(ev.title) + '</span>' +
+        '<span class="home-ev-time">' + (ev.allDay ? 'All day' : esc(calClock(ev.startTime))) + '</span>' +
+        '</li>';
+    });
+  });
+
+  var body = rows
+    ? '<ul class="home-ev-list">' + rows + '</ul>' +
+      '<p class="muted-line">' + (calendarFilter === 'all' ? 'Everyone\u2019s plans' : calLook({ members: [calendarFilter] }).label + '\u2019s plans') + ' \u00B7 ' + FAMILY_TZ_LABEL + '</p>'
+    : '<div class="home-ev-empty">' +
+      '<span class="home-ev-empty-ico">\uD83C\uDF3C</span>' +
+      '<p>No plans in the next few days. A practice, a playdate, a movie night \u2014 add it here and everyone sees it.</p>' +
+      '</div>';
+
+  return '<section class="card home-schedule tap-card" data-action="go-tab" data-tab="calendar">' +
+    '<header class="card-head">' +
+    '<div><h2>\uD83D\uDCC5 Upcoming Schedule</h2><p class="muted">Next 4 days \u00B7 ' + FAMILY_TZ_LABEL + '</p></div>' +
+    '<span class="pill warm">' + calendarEvents().length + ' event' + (calendarEvents().length === 1 ? '' : 's') + '</span>' +
+    '</header>' +
+    body +
+    '<button class="btn soft" data-action="cal-add-event">+ Add Event</button>' +
+    '</section>';
 }
 
 
@@ -3715,6 +4116,464 @@ function deleteMessage(messageId) {
 
 
 /* =====================================================================
+   Our Family Dashboard — 085 · Family calendar (Month / Week / Agenda)
+   ===================================================================== */
+
+var CAL_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/* Sunday-first week start, matching the calendar grid the family knows. */
+function sunWeekStart(d) {
+  var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - x.getDay());
+  return x;
+}
+
+function monthTitle(d) {
+  return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(calendarStamp(d));
+}
+
+function weekRangeLabel(start) {
+  var end = addDays(start, 6);
+  return shortDate(start) + ' \u2013 ' + shortDate(end) + ', ' + end.getFullYear();
+}
+
+function calSelectedKey() { return calendarDay || dateKey(); }
+
+/* ---------- the tab ---------- */
+
+function renderCalendar() {
+  var panel = $('#tab-calendar');
+  if (!panel) return;
+  var today = nyToday();
+  if (!calendarMonth) calendarMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  if (!calendarWeek) calendarWeek = today;
+  if (!calendarDay) calendarDay = dateKey(today);
+
+  var body;
+  if (calendarView === 'week') body = calendarWeekHTML();
+  else if (calendarView === 'agenda') body = calendarAgendaHTML();
+  else body = calendarMonthHTML();
+
+  panel.innerHTML = calendarToolbarHTML() + body;
+}
+
+function calendarToolbarHTML() {
+  var views = [['month', 'Month'], ['week', 'Week'], ['agenda', 'Agenda']];
+  var seg = views.map(function (v) {
+    return '<button class="seg' + (calendarView === v[0] ? ' active' : '') + '"' +
+      ' data-action="cal-view" data-view="' + v[0] + '">' + v[1] + '</button>';
+  }).join('');
+
+  return '<section class="card cal-toolbar">' +
+    '<header class="card-head">' +
+    '<div><h2>\uD83D\uDCC5 Family Calendar</h2>' +
+    '<p class="muted">Every practice, appointment and movie night in one cozy place</p></div>' +
+    '<span class="pill">America/New_York (ET)</span>' +
+    '</header>' +
+    '<div class="cal-tools">' +
+    '<div class="segmented cal-views">' + seg + '</div>' +
+    '<button class="btn primary small" data-action="cal-add-event">+ Add Event</button>' +
+    '</div>' +
+    '<div class="cal-filters">' + calendarFilterChipsHTML() + '</div>' +
+    '</section>';
+}
+
+function calendarFilterChipsHTML() {
+  var ids = ['all', 'arya', 'delia', 'dada', 'mom'];
+  return ids.map(function (id) {
+    var look = CAL_MEMBER_LOOK[id];
+    var on = calendarFilter === id;
+    var ico = id === 'all'
+      ? '<span class="cal-chip-dot" style="background:' + look.dot + '"></span>'
+      : '<span class="cal-chip-ico">' + look.emoji + '</span>';
+    return '<button class="cal-chip' + (on ? ' active' : '') + '" data-action="cal-filter"' +
+      ' data-member="' + id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
+      ico + esc(id === 'all' ? 'All' : look.label) + '</button>';
+  }).join('');
+}
+
+/* ---------- Month view ---------- */
+
+function calPillHTML(ev) {
+  var look = calLook(ev);
+  return '<span class="cal-pill" style="--ev-bg:' + look.bg + ';--ev-dot:' + look.dot + ';--ev-ink:' + look.ink + '">' +
+    '<span class="cal-pill-dot"></span>' +
+    '<span class="cal-pill-text">' + esc(ev.title) + '</span></span>';
+}
+
+function calendarMonthHTML() {
+  var today = nyToday();
+  var first = calendarMonth || new Date(today.getFullYear(), today.getMonth(), 1);
+  var gridStart = sunWeekStart(first);
+  var todayKey = dateKey(today);
+  var sel = calSelectedKey();
+
+  var dow = CAL_DOW.map(function (n) { return '<span>' + n + '</span>'; }).join('');
+
+  var cells = '';
+  for (var i = 0; i < 42; i++) {
+    var d = addDays(gridStart, i);
+    var key = dateKey(d);
+    var list = eventsForDate(key, calendarFilter);
+    var cls = 'cal-day';
+    if (d.getMonth() !== first.getMonth()) cls += ' other-month';
+    if (key === todayKey) cls += ' today';
+    if (key === sel) cls += ' selected';
+
+    var pills = '';
+    list.slice(0, 3).forEach(function (ev) { pills += calPillHTML(ev); });
+    var more = list.length > 3 ? '<span class="cal-more">+' + (list.length - 3) + ' more</span>' : '';
+
+    cells += '<div class="' + cls + '" data-action="cal-select-day" data-date="' + key + '"' +
+      ' role="button" tabindex="0" aria-label="' + esc(longDate(d) + ', ' + list.length + ' events') + '">' +
+      '<span class="cal-daynum">' + d.getDate() + '</span>' +
+      '<div class="cal-pills">' + pills + '</div>' + more + '</div>';
+  }
+
+  var nav = '<div class="cal-nav">' +
+    '<button class="cal-nav-btn" data-action="cal-prev" aria-label="Previous month">\u2039</button>' +
+    '<span class="cal-nav-title">' + monthTitle(first) + '</span>' +
+    '<button class="cal-nav-btn today" data-action="cal-today">Today</button>' +
+    '<button class="cal-nav-btn" data-action="cal-next" aria-label="Next month">\u203A</button>' +
+    '</div>';
+
+  return '<section class="card cal-month">' + nav +
+    '<div class="cal-weekdays">' + dow + '</div>' +
+    '<div class="cal-grid">' + cells + '</div>' +
+    '<p class="cal-hint">Tap a day to see that day\u2019s schedule below.</p>' +
+    '</section>' +
+    calendarDayCardHTML(sel);
+}
+
+/* ---------- selected day / agenda event cards ---------- */
+
+function calEventCardHTML(ev) {
+  var look = calLook(ev);
+  var who = calMembers(ev).map(function (id) {
+    if (id === 'all') return 'Everyone';
+    return (CAL_MEMBER_LOOK[id] || CAL_MEMBER_LOOK.all).label;
+  }).join(', ');
+  var repeat = (ev.repeat && ev.repeat !== 'none')
+    ? '<span class="cal-badge">\uD83D\uDD01 ' + CAL_REPEAT_LABELS[ev.repeat] + '</span>' : '';
+  var loc = ev.location ? '<span class="cal-badge">\uD83D\uDCCD ' + esc(ev.location) + '</span>' : '';
+  var notes = ev.notes ? '<p class="cal-notes">' + esc(ev.notes) + '</p>' : '';
+
+  return '<article class="cal-event" style="--ev-bg:' + look.bg + ';--ev-dot:' + look.dot + ';--ev-ink:' + look.ink + '">' +
+    '<div class="cal-event-when">' +
+    '<span class="cal-event-emoji">' + esc(ev.emoji || '\uD83D\uDCC5') + '</span>' +
+    '<strong>' + (ev.allDay ? 'All day' : esc(calClock(ev.startTime))) + '</strong>' +
+    (ev.allDay || !ev.endTime ? '' : '<small>' + esc(calClock(ev.endTime)) + '</small>') +
+    '</div>' +
+    '<div class="cal-event-main">' +
+    '<h3>' + esc(ev.title) + '</h3>' +
+    '<p class="cal-event-meta"><span class="cal-dot"></span>' + esc(who) + '</p>' +
+    (repeat || loc ? '<div class="cal-badges">' + repeat + loc + '</div>' : '') +
+    notes +
+    '</div>' +
+    '<div class="cal-event-actions">' +
+    '<button class="icon-btn" data-action="cal-edit-event" data-event="' + esc(ev.id) + '" aria-label="Edit event">\u270F\uFE0F</button>' +
+    '<button class="icon-btn danger" data-action="cal-delete-event" data-event="' + esc(ev.id) + '" aria-label="Delete event">\u2715</button>' +
+    '</div></article>';
+}
+
+function calendarDayCardHTML(key) {
+  var d = parseKey(key);
+  var todayKey = dateKey();
+  var list = eventsForDate(key, calendarFilter);
+  var count = list.length
+    ? list.length + ' event' + (list.length === 1 ? '' : 's')
+    : 'Nothing planned';
+
+  var body = list.length
+    ? list.map(calEventCardHTML).join('')
+    : '<div class="cal-empty"><span>\uD83C\uDF3F</span><p>A free day \u2014 nothing on the calendar yet.</p></div>';
+
+  return '<section class="card cal-day-card">' +
+    '<header class="card-head">' +
+    '<div><h2>' + longDate(d) + '</h2>' +
+    '<p class="muted">' + count + ' \u00B7 ' + FAMILY_TZ_LABEL + '</p></div>' +
+    '<span class="pill' + (key === todayKey ? ' warm' : ' soft') + '">' +
+    (key === todayKey ? 'Today' : shortDate(d)) + '</span>' +
+    '</header>' +
+    '<div class="cal-event-stack">' + body + '</div>' +
+    '<button class="add-row" data-action="cal-add-event" data-date="' + key + '">+ Add on this day</button>' +
+    '</section>';
+}
+
+/* ---------- Week view ---------- */
+
+function calWeekEventHTML(ev) {
+  var look = calLook(ev);
+  return '<button class="cal-week-ev" data-action="cal-edit-event" data-event="' + esc(ev.id) + '"' +
+    ' style="--ev-bg:' + look.bg + ';--ev-dot:' + look.dot + ';--ev-ink:' + look.ink + '">' +
+    '<span class="cal-week-ev-time">' + (ev.allDay ? 'All day' : esc(calClock(ev.startTime))) + '</span>' +
+    '<span class="cal-week-ev-title">' + esc(ev.emoji || '') + ' ' + esc(ev.title) + '</span></button>';
+}
+
+function calendarWeekHTML() {
+  var anchor = calendarWeek || nyToday();
+  var start = sunWeekStart(anchor);
+  var todayKey = dateKey();
+
+  var days = '';
+  for (var i = 0; i < 7; i++) {
+    var d = addDays(start, i);
+    var key = dateKey(d);
+    var list = eventsForDate(key, calendarFilter);
+    var body = list.length
+      ? list.map(calWeekEventHTML).join('')
+      : '<p class="cal-week-none">No plans</p>';
+    days += '<div class="cal-week-day' + (key === todayKey ? ' today' : '') + '">' +
+      '<div class="cal-week-head">' +
+      '<span class="cal-week-dow">' + CAL_DOW[i] + '</span>' +
+      '<span class="cal-week-date">' + d.getDate() + '</span>' +
+      '<button class="cal-week-add" data-action="cal-add-event" data-date="' + key + '"' +
+      ' aria-label="Add event on ' + esc(shortDate(d)) + '">+</button>' +
+      '</div>' + body + '</div>';
+  }
+
+  var nav = '<div class="cal-nav">' +
+    '<button class="cal-nav-btn" data-action="cal-prev" aria-label="Previous week">\u2039</button>' +
+    '<span class="cal-nav-title">' + weekRangeLabel(start) + '</span>' +
+    '<button class="cal-nav-btn today" data-action="cal-today">Today</button>' +
+    '<button class="cal-nav-btn" data-action="cal-next" aria-label="Next week">\u203A</button>' +
+    '</div>';
+
+  return '<section class="card cal-week">' + nav +
+    '<div class="cal-week-days">' + days + '</div></section>';
+}
+
+/* ---------- Agenda view ---------- */
+
+function calendarAgendaHTML() {
+  var today = nyToday();
+  var groups = calDaysWithEvents(today, 21, calendarFilter);
+  var total = groups.reduce(function (n, g) { return n + g.events.length; }, 0);
+
+  var body;
+  if (!groups.length) {
+    body = '<div class="cal-empty"><span>\uD83C\uDF3C</span>' +
+      '<p>Nothing on the calendar for the next three weeks.</p>' +
+      '<button class="btn small" data-action="cal-add-event">+ Add Event</button></div>';
+  } else {
+    body = groups.map(function (g) {
+      var label = g.key === dateKey(today) ? 'Today'
+        : (g.key === dateKey(addDays(today, 1)) ? 'Tomorrow' : longDate(g.date));
+      return '<div class="cal-agenda-group">' +
+        '<div class="cal-agenda-day">' +
+        '<span class="cal-agenda-date">' + esc(label) + '</span>' +
+        '<span class="cal-agenda-count">' + g.events.length + '</span>' +
+        '</div>' +
+        g.events.map(calEventCardHTML).join('') +
+        '</div>';
+    }).join('');
+  }
+
+  return '<section class="card cal-agenda">' +
+    '<header class="card-head">' +
+    '<div><h2>\uD83D\uDCC6 Next 21 Days</h2>' +
+    '<p class="muted">From ' + longDate(today) + ' \u00B7 ' + FAMILY_TZ_LABEL + '</p></div>' +
+    '<span class="pill">' + total + ' event' + (total === 1 ? '' : 's') + '</span>' +
+    '</header>' + body + '</section>';
+}
+
+/* ---------- view actions ---------- */
+
+function setCalendarView(view) {
+  if (['month', 'week', 'agenda'].indexOf(view) === -1) return;
+  calendarView = view;
+  renderCalendar();
+}
+
+function calendarStep(delta) {
+  if (calendarView === 'week') {
+    calendarWeek = addDays(calendarWeek || nyToday(), 7 * delta);
+  } else {
+    var base = calendarMonth || new Date(nyToday().getFullYear(), nyToday().getMonth(), 1);
+    var next = new Date(base.getFullYear(), base.getMonth() + delta, 1);
+    calendarMonth = next;
+    var sel = parseKey(calSelectedKey());
+    if (sel.getFullYear() !== next.getFullYear() || sel.getMonth() !== next.getMonth()) {
+      calendarDay = dateKey(next);
+    }
+  }
+  renderCalendar();
+}
+
+function calendarGoToday() {
+  var t = nyToday();
+  calendarMonth = new Date(t.getFullYear(), t.getMonth(), 1);
+  calendarWeek = t;
+  calendarDay = dateKey(t);
+  renderCalendar();
+}
+
+function calendarSelectDay(key) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key || ''))) return;
+  calendarDay = key;
+  var d = parseKey(key);
+  calendarMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  renderCalendar();
+}
+
+function setCalendarFilter(member) {
+  calendarFilter = (member && CAL_MEMBER_LOOK[member]) ? member : 'all';
+  if (currentTab === 'calendar') renderCalendar();
+  if (currentTab === 'home') renderHome();
+}
+
+/* ---------- add / edit modal ---------- */
+
+function calendarModalMemberChips() {
+  var picked = window.__calMembers || ['all'];
+  return ['all', 'arya', 'delia', 'dada', 'mom'].map(function (id) {
+    var look = CAL_MEMBER_LOOK[id];
+    var on = picked.indexOf(id) !== -1;
+    var label = id === 'all' ? '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66 Everyone' : look.emoji + ' ' + look.label;
+    return '<button class="cal-chip' + (on ? ' active' : '') + '" data-action="cal-modal-member"' +
+      ' data-member="' + id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + label + '</button>';
+  }).join('');
+}
+
+function openCalendarEventModal(eventId, dateStr) {
+  var existing = eventId ? byId(calendarEvents(), eventId) : null;
+  var date = (existing && existing.date) || dateStr || calSelectedKey() || dateKey();
+  var allDay = existing ? !!existing.allDay : false;
+  var startTime = (existing && existing.startTime) || '16:00';
+  var endTime = (existing && existing.endTime) || '17:00';
+  window.__calEmoji = (existing && existing.emoji) || '\uD83D\uDCC5';
+  window.__calMembers = existing ? calMembers(existing).slice() : ['all'];
+
+  var emojiChips = CAL_EMOJIS.map(function (e) {
+    return '<button class="emoji-chip' + (e === window.__calEmoji ? ' selected' : '') + '"' +
+      ' data-action="cal-emoji" data-emoji="' + e + '">' + e + '</button>';
+  }).join('');
+
+  var repeatOptions = CAL_REPEATS.map(function (r) {
+    return '<option value="' + r + '"' + (existing && existing.repeat === r ? ' selected' : '') + '>' +
+      CAL_REPEAT_LABELS[r] + '</option>';
+  }).join('');
+
+  openModal(
+    '<div class="modal-head"><h2>' + (existing ? '\u270F\uFE0F Edit event' : '\uD83D\uDCC5 New family event') + '</h2>' +
+    '<button class="icon-btn" data-action="close-modal" aria-label="Close">\u2715</button></div>' +
+    '<label class="field"><span>What is it?</span>' +
+    '<input id="calTitle" type="text" maxlength="80" placeholder="e.g. Arya Soccer Practice"' +
+    ' value="' + esc(existing ? existing.title : '') + '" data-autofocus></label>' +
+    '<div class="field"><span>Icon</span><div class="emoji-picker">' + emojiChips + '</div></div>' +
+    '<label class="field"><span>Date</span>' +
+    '<input id="calDate" type="date" value="' + esc(date) + '"></label>' +
+    '<label class="check-line"><input id="calAllDay" type="checkbox" data-change="cal-allday"' +
+    (allDay ? ' checked' : '') + '> All-day event</label>' +
+    '<div class="cal-time-row" id="calTimeRow"' + (allDay ? ' hidden' : '') + '>' +
+    '<label class="field inline"><span>From</span><input id="calStart" type="time" value="' + esc(startTime) + '"></label>' +
+    '<label class="field inline"><span>To</span><input id="calEnd" type="time" value="' + esc(endTime) + '"></label>' +
+    '</div>' +
+    '<label class="field"><span>Repeats</span><select id="calRepeat">' + repeatOptions + '</select></label>' +
+    '<div class="field"><span>Who is it for?</span>' +
+    '<div class="cal-modal-members" id="calMemberChips">' + calendarModalMemberChips() + '</div></div>' +
+    '<label class="field"><span>Place (optional)</span>' +
+    '<input id="calLocation" type="text" maxlength="80" placeholder="e.g. Field 2, Middletown"' +
+    ' value="' + esc(existing ? existing.location : '') + '"></label>' +
+    '<label class="field"><span>Notes (optional)</span>' +
+    '<textarea id="calNotes" rows="3" placeholder="Bring the blue water bottle \uD83E\uDDCA">' +
+    esc(existing ? existing.notes : '') + '</textarea></label>' +
+    '<div class="modal-actions">' +
+    (existing ? '<button class="btn danger" data-action="cal-delete-event" data-event="' + esc(existing.id) + '">Delete</button>' : '') +
+    '<button class="btn" data-action="close-modal">Cancel</button>' +
+    '<button class="btn primary" data-action="cal-save-event" data-event="' + esc(existing ? existing.id : '') + '">Save event</button>' +
+    '</div>'
+  );
+}
+
+function calPickEmoji(emoji) {
+  window.__calEmoji = emoji || '\uD83D\uDCC5';
+  $$('.emoji-chip').forEach(function (chip) {
+    chip.classList.toggle('selected', chip.getAttribute('data-emoji') === window.__calEmoji);
+  });
+}
+
+function calToggleModalMember(id) {
+  var picked = (window.__calMembers || ['all']).slice();
+  if (id === 'all') {
+    picked = ['all'];
+  } else if (CAL_MEMBER_LOOK[id]) {
+    picked = picked.filter(function (x) { return x !== 'all'; });
+    var idx = picked.indexOf(id);
+    if (idx === -1) picked.push(id); else picked.splice(idx, 1);
+    if (!picked.length) picked = ['all'];
+  }
+  window.__calMembers = picked;
+  var wrap = $('#calMemberChips');
+  if (wrap) wrap.innerHTML = calendarModalMemberChips();
+}
+
+function calToggleAllDay(on) {
+  var row = $('#calTimeRow');
+  if (row) row.hidden = !!on;
+}
+
+function saveCalendarEventFromModal(btn) {
+  var id = btn.getAttribute('data-event') || '';
+  var titleEl = $('#calTitle');
+  var dateEl = $('#calDate');
+  if (!titleEl || !dateEl) return;
+
+  var title = String(titleEl.value || '').trim();
+  var date = String(dateEl.value || '').trim();
+  if (!title) { toast('Please give the event a name.'); return; }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast('Please pick a date for the event.'); return; }
+
+  var allDayEl = $('#calAllDay');
+  var startEl = $('#calStart');
+  var endEl = $('#calEnd');
+  var repeatEl = $('#calRepeat');
+  var locEl = $('#calLocation');
+  var notesEl = $('#calNotes');
+  var allDay = !!(allDayEl && allDayEl.checked);
+
+  var data = {
+    title: title,
+    date: date,
+    allDay: allDay,
+    startTime: allDay ? '' : (startEl ? startEl.value : ''),
+    endTime: allDay ? '' : (endEl ? endEl.value : ''),
+    members: (window.__calMembers && window.__calMembers.length) ? window.__calMembers : ['all'],
+    repeat: repeatEl ? repeatEl.value : 'none',
+    emoji: window.__calEmoji || '\uD83D\uDCC5',
+    location: locEl ? locEl.value : '',
+    notes: notesEl ? notesEl.value : ''
+  };
+
+  if (!allDay && data.startTime && data.endTime && data.endTime < data.startTime) {
+    var swap = data.startTime;
+    data.startTime = data.endTime;
+    data.endTime = swap;
+  }
+
+  var saved = id ? updateCalendarEvent(id, data) : addCalendarEvent(data);
+  closeModal();
+  if (!saved) { toast('That event could not be saved.'); return; }
+
+  calendarDay = saved.date;
+  var d = parseKey(saved.date);
+  calendarMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  calendarWeek = d;
+  commit(id ? 'Event updated \uD83D\uDCC5' : 'Event saved \uD83D\uDCC5');
+}
+
+function deleteCalendarEventById(id) {
+  var ev = byId(calendarEvents(), id);
+  if (!ev) return;
+  askConfirm('Delete this event?', '\u201C' + ev.title + '\u201D will disappear from the whole family calendar.', 'Delete', function () {
+    deleteCalendarEvent(id);
+    closeModal();
+    commit('Event deleted');
+  });
+}
+
+
+/* =====================================================================
    Our Family Dashboard — 09 · Settings, backup & cloud sign-in gate
    ===================================================================== */
 
@@ -4263,6 +5122,20 @@ function runAction(action, el) {
     case 'tablet-test': triggerTabletAlarm('countdown'); break;
     case 'dismiss-tablet': dismissTabletLock(); break;
 
+    /* family calendar */
+    case 'cal-view': setCalendarView(el.getAttribute('data-view')); break;
+    case 'cal-prev': calendarStep(-1); break;
+    case 'cal-next': calendarStep(1); break;
+    case 'cal-today': calendarGoToday(); break;
+    case 'cal-select-day': calendarSelectDay(el.getAttribute('data-date')); break;
+    case 'cal-filter': setCalendarFilter(el.getAttribute('data-member')); break;
+    case 'cal-add-event': openCalendarEventModal(null, el.getAttribute('data-date') || ''); break;
+    case 'cal-edit-event': openCalendarEventModal(el.getAttribute('data-event'), ''); break;
+    case 'cal-delete-event': deleteCalendarEventById(el.getAttribute('data-event')); break;
+    case 'cal-save-event': saveCalendarEventFromModal(el); break;
+    case 'cal-emoji': calPickEmoji(el.getAttribute('data-emoji')); break;
+    case 'cal-modal-member': calToggleModalMember(el.getAttribute('data-member')); break;
+
     /* allowance */
     case 'allowance-child': setAllowanceChild(el.getAttribute('data-member')); break;
     case 'money-in': openMoneyModal(el.getAttribute('data-member'), 'deposit'); break;
@@ -4340,6 +5213,7 @@ function onDocumentChange(ev) {
     case 'pin-code': setPinCode(node.value); break;
     case 'allowance-amount': setAllowanceAmount(memberId, node.value); break;
     case 'import-json': importJson(node); break;
+    case 'cal-allday': calToggleAllDay(node.checked); break;
     default: break;
   }
 }
