@@ -1224,6 +1224,7 @@ main { padding: 8px 14px 20px; max-width: 760px; margin: 0 auto; }
 .cal-time-row { display: flex; gap: 8px; }
 .cal-time-row .field { flex: 1; min-width: 0; }
 .cal-modal-members { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cal-delete-choices { flex-direction: column; }
 #calNotes { font-family: inherit; font-size: 14px; }
 
 /* home preview: upcoming schedule */
@@ -1942,9 +1943,10 @@ function calMatchesMember(ev, filter) {
   return members.indexOf('all') !== -1 || members.indexOf(filter) !== -1;
 }
 
-/* Does this event fall on that New York calendar day, honouring its repeat? */
+/* Does this event fall on that New York calendar day, honouring its repeat and exclusions? */
 function calEventOnDate(ev, key) {
   if (!ev || !ev.date || !key) return false;
+  if (Array.isArray(ev.excludedDates) && ev.excludedDates.indexOf(key) !== -1) return false;
   if (ev.date === key) return true;
   var start = parseKey(ev.date);
   var day = parseKey(key);
@@ -2010,6 +2012,14 @@ function normalizeCalendarEvent(raw) {
     var p = s.split(':');
     return pad2(Number(p[0]) % 24) + ':' + p[1];
   };
+  var excluded = [];
+  if (Array.isArray(raw.excludedDates)) {
+    raw.excludedDates.forEach(function (d) {
+      var s = String(d || '');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s) && excluded.indexOf(s) === -1) excluded.push(s);
+    });
+    excluded.sort();
+  }
   return {
     id: String(raw.id || uid('ev')),
     title: String(raw.title || 'Family event').slice(0, 120),
@@ -2019,6 +2029,7 @@ function normalizeCalendarEvent(raw) {
     endTime: toTime(raw.endTime),
     members: members,
     repeat: repeat,
+    excludedDates: excluded,
     emoji: String(raw.emoji || '\uD83D\uDCC5'),
     location: String(raw.location || '').slice(0, 160),
     notes: String(raw.notes || '').slice(0, 500),
@@ -2053,6 +2064,20 @@ function deleteCalendarEvent(id) {
   if (kept.length === list.length) return false;
   state.calendar.events = kept;
   return true;
+}
+
+function excludeCalendarEventDate(id, key) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(key || ''))) return false;
+  var list = calendarEvents();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id !== id) continue;
+    var ex = Array.isArray(list[i].excludedDates) ? list[i].excludedDates.slice() : [];
+    if (ex.indexOf(key) === -1) ex.push(key);
+    ex.sort();
+    list[i].excludedDates = ex;
+    return true;
+  }
+  return false;
 }
 
 /* ---------- device-local preferences ---------- */
@@ -3357,9 +3382,9 @@ function calendarHTML() {
   }
 
   return '<div class="cal-head">' +
-    '<button class="icon-btn" data-action="cal-prev" aria-label="Previous month">\u2039</button>' +
+    '<button class="icon-btn" data-action="stamp-cal-prev" aria-label="Previous month">\u2039</button>' +
     '<strong>' + monthLabel + '</strong>' +
-    '<button class="icon-btn" data-action="cal-next" aria-label="Next month">\u203A</button>' +
+    '<button class="icon-btn" data-action="stamp-cal-next" aria-label="Next month">\u203A</button>' +
     '</div>' +
     '<div class="cal-week">' + WEEK_LABELS.map(function (l) { return '<span>' + l + '</span>'; }).join('') + '</div>' +
     '<div class="cal-grid">' + cells + '</div>' +
@@ -4247,7 +4272,7 @@ function calendarMonthHTML() {
 
 /* ---------- selected day / agenda event cards ---------- */
 
-function calEventCardHTML(ev) {
+function calEventCardHTML(ev, occKey) {
   var look = calLook(ev);
   var who = calMembers(ev).map(function (id) {
     if (id === 'all') return 'Everyone';
@@ -4257,6 +4282,7 @@ function calEventCardHTML(ev) {
     ? '<span class="cal-badge">\uD83D\uDD01 ' + CAL_REPEAT_LABELS[ev.repeat] + '</span>' : '';
   var loc = ev.location ? '<span class="cal-badge">\uD83D\uDCCD ' + esc(ev.location) + '</span>' : '';
   var notes = ev.notes ? '<p class="cal-notes">' + esc(ev.notes) + '</p>' : '';
+  var dAttr = occKey ? ' data-date="' + esc(occKey) + '"' : '';
 
   return '<article class="cal-event" style="--ev-bg:' + look.bg + ';--ev-dot:' + look.dot + ';--ev-ink:' + look.ink + '">' +
     '<div class="cal-event-when">' +
@@ -4271,8 +4297,8 @@ function calEventCardHTML(ev) {
     notes +
     '</div>' +
     '<div class="cal-event-actions">' +
-    '<button class="icon-btn" data-action="cal-edit-event" data-event="' + esc(ev.id) + '" aria-label="Edit event">\u270F\uFE0F</button>' +
-    '<button class="icon-btn danger" data-action="cal-delete-event" data-event="' + esc(ev.id) + '" aria-label="Delete event">\u2715</button>' +
+    '<button class="icon-btn" data-action="cal-edit-event" data-event="' + esc(ev.id) + '"' + dAttr + ' aria-label="Edit event">\u270F\uFE0F</button>' +
+    '<button class="icon-btn danger" data-action="cal-delete-event" data-event="' + esc(ev.id) + '"' + dAttr + ' aria-label="Delete event">\u2715</button>' +
     '</div></article>';
 }
 
@@ -4285,7 +4311,7 @@ function calendarDayCardHTML(key) {
     : 'Nothing planned';
 
   var body = list.length
-    ? list.map(calEventCardHTML).join('')
+    ? list.map(function (ev) { return calEventCardHTML(ev, key); }).join('')
     : '<div class="cal-empty"><span>\uD83C\uDF3F</span><p>A free day \u2014 nothing on the calendar yet.</p></div>';
 
   return '<section class="card cal-day-card">' +
@@ -4302,9 +4328,10 @@ function calendarDayCardHTML(key) {
 
 /* ---------- Week view ---------- */
 
-function calWeekEventHTML(ev) {
+function calWeekEventHTML(ev, occKey) {
   var look = calLook(ev);
-  return '<button class="cal-week-ev" data-action="cal-edit-event" data-event="' + esc(ev.id) + '"' +
+  var dAttr = occKey ? ' data-date="' + esc(occKey) + '"' : '';
+  return '<button class="cal-week-ev" data-action="cal-edit-event" data-event="' + esc(ev.id) + '"' + dAttr +
     ' style="--ev-bg:' + look.bg + ';--ev-dot:' + look.dot + ';--ev-ink:' + look.ink + '">' +
     '<span class="cal-week-ev-time">' + (ev.allDay ? 'All day' : esc(calClock(ev.startTime))) + '</span>' +
     '<span class="cal-week-ev-title">' + esc(ev.emoji || '') + ' ' + esc(ev.title) + '</span></button>';
@@ -4321,7 +4348,7 @@ function calendarWeekHTML() {
     var key = dateKey(d);
     var list = eventsForDate(key, calendarFilter);
     var body = list.length
-      ? list.map(calWeekEventHTML).join('')
+      ? list.map(function (ev) { return calWeekEventHTML(ev, key); }).join('')
       : '<p class="cal-week-none">No plans</p>';
     days += '<div class="cal-week-day' + (key === todayKey ? ' today' : '') + '">' +
       '<div class="cal-week-head">' +
@@ -4364,7 +4391,7 @@ function calendarAgendaHTML() {
         '<span class="cal-agenda-date">' + esc(label) + '</span>' +
         '<span class="cal-agenda-count">' + g.events.length + '</span>' +
         '</div>' +
-        g.events.map(calEventCardHTML).join('') +
+        g.events.map(function (ev) { return calEventCardHTML(ev, g.key); }).join('') +
         '</div>';
     }).join('');
   }
@@ -4437,6 +4464,7 @@ function calendarModalMemberChips() {
 
 function openCalendarEventModal(eventId, dateStr) {
   var existing = eventId ? byId(calendarEvents(), eventId) : null;
+  var occDate = dateStr || calSelectedKey() || (existing && existing.date) || dateKey();
   var date = (existing && existing.date) || dateStr || calSelectedKey() || dateKey();
   var allDay = existing ? !!existing.allDay : false;
   var startTime = (existing && existing.startTime) || '16:00';
@@ -4479,7 +4507,7 @@ function openCalendarEventModal(eventId, dateStr) {
     '<textarea id="calNotes" rows="3" placeholder="Bring the blue water bottle \uD83E\uDDCA">' +
     esc(existing ? existing.notes : '') + '</textarea></label>' +
     '<div class="modal-actions">' +
-    (existing ? '<button class="btn danger" data-action="cal-delete-event" data-event="' + esc(existing.id) + '">Delete</button>' : '') +
+    (existing ? '<button class="btn danger" data-action="cal-delete-event" data-event="' + esc(existing.id) + '" data-date="' + esc(occDate) + '">Delete</button>' : '') +
     '<button class="btn" data-action="close-modal">Cancel</button>' +
     '<button class="btn primary" data-action="cal-save-event" data-event="' + esc(existing ? existing.id : '') + '">Save event</button>' +
     '</div>'
@@ -4562,14 +4590,42 @@ function saveCalendarEventFromModal(btn) {
   commit(id ? 'Event updated \uD83D\uDCC5' : 'Event saved \uD83D\uDCC5');
 }
 
-function deleteCalendarEventById(id) {
+function deleteCalendarEventById(id, occDate) {
   var ev = byId(calendarEvents(), id);
   if (!ev) return;
+  var key = /^\d{4}-\d{2}-\d{2}$/.test(String(occDate || '')) ? occDate : (calSelectedKey() || ev.date);
+  if (ev.repeat && ev.repeat !== 'none') {
+    var dayLabel = shortDate(parseKey(key));
+    openModal(
+      '<div class="modal-head"><h2>\uD83D\uDDD1\uFE0F Delete repeating event?</h2>' +
+      '<button class="icon-btn" data-action="close-modal" aria-label="Close">\u2715</button></div>' +
+      '<p class="modal-text">\u201C' + esc(ev.title) + '\u201D repeats ' +
+      esc((CAL_REPEAT_LABELS[ev.repeat] || 'regularly').toLowerCase()) + '.</p>' +
+      '<div class="modal-actions cal-delete-choices">' +
+      '<button class="btn soft" data-action="cal-delete-one" data-event="' + esc(ev.id) + '" data-date="' + esc(key) + '">Only this event (' + esc(dayLabel) + ')</button>' +
+      '<button class="btn danger" data-action="cal-delete-all" data-event="' + esc(ev.id) + '">All events in series</button>' +
+      '<button class="btn" data-action="close-modal">Cancel</button>' +
+      '</div>'
+    );
+    return;
+  }
   askConfirm('Delete this event?', '\u201C' + ev.title + '\u201D will disappear from the whole family calendar.', 'Delete', function () {
     deleteCalendarEvent(id);
     closeModal();
     commit('Event deleted');
   });
+}
+
+function deleteCalendarOccurrence(id, dateKeyStr) {
+  if (!excludeCalendarEventDate(id, dateKeyStr)) return;
+  closeModal();
+  commit('Removed for ' + shortDate(parseKey(dateKeyStr)));
+}
+
+function deleteCalendarSeries(id) {
+  if (!deleteCalendarEvent(id)) return;
+  closeModal();
+  commit('All repeating events deleted');
 }
 
 
@@ -5094,8 +5150,8 @@ function runAction(action, el) {
     case 'save-mission': saveMission(); break;
     case 'delete-mission': deleteMission(el.getAttribute('data-mission')); break;
     case 'open-stamp-calendar': openStampCalendar(); break;
-    case 'cal-prev': calStep(-1); break;
-    case 'cal-next': calStep(1); break;
+    case 'stamp-cal-prev': calStep(-1); break;
+    case 'stamp-cal-next': calStep(1); break;
 
     /* study */
     case 'add-study': openStudyModal(el.getAttribute('data-member'), null); break;
@@ -5130,8 +5186,10 @@ function runAction(action, el) {
     case 'cal-select-day': calendarSelectDay(el.getAttribute('data-date')); break;
     case 'cal-filter': setCalendarFilter(el.getAttribute('data-member')); break;
     case 'cal-add-event': openCalendarEventModal(null, el.getAttribute('data-date') || ''); break;
-    case 'cal-edit-event': openCalendarEventModal(el.getAttribute('data-event'), ''); break;
-    case 'cal-delete-event': deleteCalendarEventById(el.getAttribute('data-event')); break;
+    case 'cal-edit-event': openCalendarEventModal(el.getAttribute('data-event'), el.getAttribute('data-date') || ''); break;
+    case 'cal-delete-event': deleteCalendarEventById(el.getAttribute('data-event'), el.getAttribute('data-date') || ''); break;
+    case 'cal-delete-one': deleteCalendarOccurrence(el.getAttribute('data-event'), el.getAttribute('data-date') || ''); break;
+    case 'cal-delete-all': deleteCalendarSeries(el.getAttribute('data-event')); break;
     case 'cal-save-event': saveCalendarEventFromModal(el); break;
     case 'cal-emoji': calPickEmoji(el.getAttribute('data-emoji')); break;
     case 'cal-modal-member': calToggleModalMember(el.getAttribute('data-member')); break;
